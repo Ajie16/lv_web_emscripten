@@ -1,4 +1,3 @@
-
 /**
  * @file main
  *
@@ -14,6 +13,7 @@
 #include <emscripten.h>
 #include "lvgl/lvgl.h"
 #include "lvgl/demos/lv_demos.h"
+#include "lv_drivers/sdl/sdl.h"
 
 #include "examplelist.h"
 
@@ -36,12 +36,13 @@
  *  STATIC PROTOTYPES
  **********************/
 static void hal_init(void);
-static int tick_thread(void * data);
 static void memory_monitor(lv_timer_t * param);
 
 /**********************
  *  STATIC VARIABLES
  **********************/
+static lv_disp_t  * disp1;
+
 int monitor_hor_res, monitor_ver_res;
 
 /**********************
@@ -96,8 +97,14 @@ int main(int argc, char ** argv)
 
 void do_loop(void *arg)
 {
-    /* Periodically call the lv_task handler.
-     * It could be done in a timer interrupt or an OS task too.*/
+    static uint32_t last_tick = 0;
+    uint32_t now = (uint32_t)emscripten_get_now();
+    if(last_tick == 0) last_tick = now;
+    uint32_t elapsed = now - last_tick;
+    if(elapsed > 0) {
+        lv_tick_inc(elapsed);
+        last_tick = now;
+    }
     lv_task_handler();
 }
 
@@ -111,21 +118,54 @@ void do_loop(void *arg)
  */
 static void hal_init(void)
 {
-    lv_display_t * disp = lv_sdl_window_create(monitor_hor_res, monitor_ver_res);
+    /*Initialize the SDL*/
+    sdl_init();
 
-    lv_group_t * g = lv_group_create();
-    lv_group_set_default(g);
+    /*Create a display buffer*/
+    static lv_disp_draw_buf_t disp_buf1;
+    lv_color_t * buf1_1 = malloc(sizeof(lv_color_t) * monitor_hor_res * monitor_ver_res);
+    lv_disp_draw_buf_init(&disp_buf1, buf1_1, NULL, monitor_hor_res * monitor_ver_res);
 
-    lv_sdl_mouse_create();
-    lv_sdl_mousewheel_create();
-    lv_sdl_keyboard_create();
- 
-    lv_indev_t * mouse = lv_sdl_mouse_create();
-    lv_indev_set_group(mouse, lv_group_get_default());
-    
-    lv_indev_t * mousewheel = lv_sdl_mousewheel_create();
-    lv_indev_set_group(mousewheel, lv_group_get_default());
+    /*Create a display*/
+    static lv_disp_drv_t disp_drv;
+    lv_disp_drv_init(&disp_drv);            /*Basic initialization*/
+    disp_drv.draw_buf = &disp_buf1;
+    disp_drv.flush_cb = sdl_display_flush;
+    disp_drv.hor_res = monitor_hor_res;
+    disp_drv.ver_res = monitor_ver_res;
+    disp1 = lv_disp_drv_register(&disp_drv);
 
-    lv_indev_t * keyboard = lv_sdl_keyboard_create();
-    lv_indev_set_group(keyboard, lv_group_get_default());    
+    /* Add the mouse as input device */
+    static lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);          /*Basic initialization*/
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.read_cb = sdl_mouse_read;
+    lv_indev_drv_register(&indev_drv);
+
+    /* Add the mousewheel as input device */
+    static lv_indev_drv_t indev_drv_wheel;
+    lv_indev_drv_init(&indev_drv_wheel);
+    indev_drv_wheel.type = LV_INDEV_TYPE_ENCODER;
+    indev_drv_wheel.read_cb = sdl_mousewheel_read;
+    lv_indev_drv_register(&indev_drv_wheel);
+
+    /* Add the keyboard as input device */
+    static lv_indev_drv_t indev_drv_kb;
+    lv_indev_drv_init(&indev_drv_kb);
+    indev_drv_kb.type = LV_INDEV_TYPE_KEYPAD;
+    indev_drv_kb.read_cb = sdl_keyboard_read;
+    lv_indev_drv_register(&indev_drv_kb);
+
+    /* Optional:
+     * Create a memory monitor task which prints the memory usage in periodically.*/
+    lv_timer_create(memory_monitor, 3000, NULL);
+}
+
+/**
+ * Print the memory usage periodically
+ * @param param
+ */
+static void memory_monitor(lv_timer_t * param)
+{
+    (void) param; /*Unused*/
 }

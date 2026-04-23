@@ -2,3 +2,6 @@
 	path = lvgl
 	url = https://github.com/littlevgl/lvgl.git
 	branch = master
+[submodule "lv_drivers"]
+	path = lv_drivers
+	url = https://github.com/lvgl/lv_drivers.git

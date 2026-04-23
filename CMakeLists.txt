@@ -7,9 +7,10 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 add_subdirectory(lvgl)
 file(GLOB MY_SOURCES "./*.c")
-set(SOURCES ${MY_SOURCES})
+file(GLOB_RECURSE LV_DRIVERS_SOURCES "lv_drivers/*.c")
+set(SOURCES ${MY_SOURCES} ${LV_DRIVERS_SOURCES})
 
-add_executable(index ${SOURCES} ${INCLUDES})
+add_executable(index ${SOURCES})
 
 if(NOT LVGL_CHOSEN_DEMO)
     set(LVGL_CHOSEN_DEMO lv_demo_widgets)
@@ -21,7 +22,6 @@ target_link_libraries(index
     lvgl
     lvgl_examples
     lvgl_demos
-    lvgl_thorvg
     SDL2
 )
 set_target_properties(index PROPERTIES LINK_FLAGS "--shell-file ${PROJECT_SOURCE_DIR}/lvgl_shell.html -s SINGLE_FILE=1 -s INITIAL_MEMORY=33554432")
