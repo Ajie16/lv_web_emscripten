@@ -1,61 +1,148 @@
 # Emscripten port
 
-**LVGL ported to Emscripten to be converted to JavaScript**
+**LVGL v8.4.0 ported to Emscripten to be converted to JavaScript**
+
+> This fork restores `lv_drivers` support for LVGL v8 compatibility. The upstream removed `lv_drivers` when migrating to v9 (built-in SDL drivers). If you need v9, use the [official repo](https://github.com/lvgl/lv_web_emscripten).
 
 The result looks like this: [https://lvgl.io/demos](https://lvgl.io/demos)
 
+---
+
 # How to get started
 
-## Install SDL
+## Prerequisites
 
-Download [SDL](https://www.libsdl.org/) (a graphics library to open a window and handle the mouse). On Linux:
-
-1. Find the current version of SDL2: `apt-cache search libsdl2` (e.g., `libsdl2-2.0-0`)
-1. Install SDL2: `sudo apt-get install libsdl2-2.0-0` (replace with the found version)
-1. Install the SDL2 development package: `sudo apt-get install libsdl2-dev`
-1. If build essentials are not installed yet: `sudo apt-get install build-essential`
-
----
+- CMake >= 3.12
+- Python 3 (for Emscripten)
+- Git
 
 ## Install Emscripten SDK
 
-Download the [Emscripten SDK](https://kripken.github.io/emscripten-site/) and make sure it is in your `PATH`.
+Download the [Emscripten SDK](https://emscripten.org/) and make sure it is in your `PATH`.
 
-1. `git clone https://github.com/emscripten-core/emsdk.git`
-1. `cd emsdk`
-1. `git pull`
-1. `./emsdk install latest`
-1. `./emsdk activate latest`
-1. `source ./emsdk_env.sh`
+```bash
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install 3.1.74
+./emsdk activate 3.1.74
+source ./emsdk_env.sh
+```
 
-More info here: [Emscripten Downloads](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html)
-
----
-
-## Get the Emscripten-LVGL project
-
-1. Be sure you ran `. <path-to-emsdk>/emsdk_env.sh` to add EMSDK to `PATH`
-1. In any directory: `git clone --recursive https://github.com/lvgl/lv_web_emscripten.git`
-1. `cd lv_web_emscripten`
-1. `mkdir cmbuild`
-1. `cd cmbuild`
-1. `emcmake cmake ..`
-1. `emmake make -j4`
-1. A file called `index.html` will be generated. Open this in your browser
+> **Note:** Emscripten `latest` may introduce breaking changes. Version `3.1.74` is verified to work with this project.
 
 ---
 
-### Build options (environment variables)
+## Get the project
 
-* `LVGL_CHOSEN_DEMO` can be set to the desired demo name so that you don't need to change any C files. This is useful to compile many demos in bulk using a script.
+```bash
+# Clone with submodules (lvgl v8.4.0 + lv_drivers)
+git clone --recursive https://github.com/Ajie16/lv_web_emscripten.git
+cd lv_web_emscripten
+```
 
-Example: 
+If you already cloned without `--recursive`:
+
+```bash
+git submodule update --init --recursive
+```
+
+---
+
+## Build
+
+```bash
+# Ensure Emscripten is in PATH
+source <path-to-emsdk>/emsdk_env.sh
+
+# Create build directory
+mkdir build && cd build
+
+# Configure (default demo: lv_demo_widgets)
+emcmake cmake .. -DLVGL_CHOSEN_DEMO=lv_demo_widgets
+
+# Build
+emmake make -j$(nproc)
+```
+
+The output `index.html` (and supporting files) will be generated in the `build/` directory.
+
+---
+
+## Serve and test
+
+You need an HTTP server to load the generated HTML. Simply opening the file directly in a browser will not work due to CORS/security restrictions on WASM.
+
+```bash
+cd build
+python3 -m http.server 8080
+```
+
+Then open `http://localhost:8080/index.html` in your browser.
+
+---
+
+## Browser compatibility
+
+| Browser | Status | Notes |
+|---------|--------|-------|
+| **Edge** | ✅ Recommended | Fully functional |
+| **Chrome** | ⚠️ Partial | Chrome may block local/localhost WASM under certain security policies. Use Edge or a real HTTP server if issues occur. |
+| **Firefox** | ⚠️ Needs config | For offline file access, set `privacy.file_unique_origin` to `false` in `about:config`. |
+
+---
+
+## Build options
+
+### Choose a demo
+
 ```bash
 emcmake cmake .. -DLVGL_CHOSEN_DEMO=lv_demo_widgets
 ```
 
-### Known issue with Google Chrome browser
-Chrome might not be able to open the generated HTML file offline. It works if you copy the files to a server. Use Firefox or other browser for offline testing if needed.
+Available demos depend on `lvgl/demos/`. Common options:
+- `lv_demo_widgets`
+- `lv_demo_benchmark`
+- `lv_demo_stress`
 
-### Known issue with Firefox
-Firefox might not be able to open the generated HTML file offline unless you go to `about:config` and change `privacy.file_unique_origin` to `false`.
+### Memory optimization
+
+The default build allocates **32 MB** initial WASM memory. You can reduce this in `CMakeLists.txt`:
+
+```cmake
+# Reduce initial memory and allow growth
+set_target_properties(index PROPERTIES LINK_FLAGS "... -s INITIAL_MEMORY=8388608 -s ALLOW_MEMORY_GROWTH=1")
+```
+
+| Flag | Default | Optimized | Description |
+|------|---------|-----------|-------------|
+| `INITIAL_MEMORY` | `33554432` (32MB) | `8388608` (8MB) | Pre-allocated WASM heap |
+| `ALLOW_MEMORY_GROWTH` | Not set | `1` | Allow heap to grow on demand |
+
+---
+
+## Project structure
+
+```
+lv_web_emscripten/
+├── lvgl/              # LVGL core (v8.4.0) - official submodule
+├── lv_drivers/        # Display/input drivers - official submodule
+├── main.c             # Entry point, SDL init, main loop
+├── lv_conf.h          # LVGL configuration
+├── lv_drv_conf.h      # lv_drivers configuration
+├── lvgl_shell.html    # Emscripten HTML shell
+├── CMakeLists.txt     # Build configuration
+└── README.md          # This file
+```
+
+---
+
+## Known issues
+
+1. **Chrome local/localhost WASM restrictions**: Chrome may refuse to load WASM from localhost under certain conditions. Use Edge or deploy to a real server.
+2. **SDL2 port download failure during build**: If Emscripten fails to download SDL2 from GitHub (network/proxy issues), manually download the required SDL2 release zip to `emsdk/upstream/emscripten/cache/ports/` and clear the cache lock file.
+
+---
+
+## License
+
+Same as [LVGL](https://github.com/lvgl/lvgl) - MIT license.
