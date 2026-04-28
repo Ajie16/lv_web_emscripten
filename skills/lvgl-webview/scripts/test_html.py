@@ -1,25 +1,48 @@
 #!/usr/bin/env python3
 """
-LVGL Emscripten HTML Test Tool
+LVGL Web 视图测试工具 — 浏览器自动化脚本
 
-Features:
-  1. Screenshot the LVGL canvas or full page
-  2. Simulate mouse clicks at specified coordinates
-  3. Report canvas pixel dimensions (width x height)
+功能：
+  1. 截图 LVGL Canvas 或整页
+  2. 模拟鼠标操作（单击、双击、长按、拖拽、滚轮）
+  3. 模拟键盘输入（方向键、回车、ESC、Tab 等）
+  4. 获取 Canvas 像素尺寸信息
 
-Usage:
-  python3 test_html.py <url_or_file> [--screenshot <path>] [--click <x,y>] [--wait <ms>]
+用法：
+  python3 test_html.py <url_or_file> [选项]
 
-Examples:
-  python3 test_html.py http://localhost:3060/index.html --screenshot out.png
+示例：
+  # 截图
+  python3 test_html.py build/index.html --screenshot out.png
+
+  # 单击
   python3 test_html.py build/index.html --click 400,240 --screenshot clicked.png
-  python3 test_html.py http://localhost:3060/index.html --info
+
+  # 双击
+  python3 test_html.py build/index.html --double-click 400,240
+
+  # 长按 1 秒
+  python3 test_html.py build/index.html --long-press 400,240 --duration 1000
+
+  # 拖拽
+  python3 test_html.py build/index.html --drag 100,400 --to 700,400
+
+  # 滚轮（模拟编码器）
+  python3 test_html.py build/index.html --scroll 5
+
+  # 键盘 — 回车确认
+  python3 test_html.py build/index.html --key Enter
+
+  # 键盘 — 方向键导航
+  python3 test_html.py build/index.html --key ArrowDown --key ArrowRight --key Enter
+
+  # 获取尺寸
+  python3 test_html.py build/index.html --info
 """
 
 import argparse
 import os
 import sys
-import tempfile
 import time
 import http.server
 import socketserver
@@ -29,7 +52,7 @@ from playwright.sync_api import sync_playwright
 
 
 def find_free_port():
-    """Find a free TCP port."""
+    """查找一个空闲的 TCP 端口。"""
     import socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("", 0))
@@ -37,13 +60,13 @@ def find_free_port():
 
 
 def start_temp_server(directory, port):
-    """Start a temporary HTTP server in a background thread."""
+    """在后台线程启动临时 HTTP 服务器。"""
     class Handler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=directory, **kwargs)
 
         def log_message(self, format, *args):
-            pass  # suppress logs
+            pass  # 静默日志
 
     httpd = socketserver.TCPServer(("", port), Handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -52,13 +75,13 @@ def start_temp_server(directory, port):
 
 
 def resolve_url(target):
-    """Convert a local file path to a served URL if necessary."""
+    """将本地文件路径转换为可访问的 URL（如需要则启动临时服务器）。"""
     if target.startswith("http://") or target.startswith("https://"):
         return target, None
 
     abs_path = os.path.abspath(target)
     if not os.path.exists(abs_path):
-        print(f"Error: file not found: {abs_path}", file=sys.stderr)
+        print(f"错误：文件不存在：{abs_path}", file=sys.stderr)
         sys.exit(1)
 
     if os.path.isfile(abs_path):
@@ -71,12 +94,12 @@ def resolve_url(target):
     port = find_free_port()
     server = start_temp_server(directory, port)
     url = f"http://localhost:{port}/{filename}"
-    print(f"Serving {directory} at {url}")
+    print(f"正在提供 {directory} 的访问：{url}")
     return url, server
 
 
 def get_canvas_info(page):
-    """Return canvas width, height, and bounding box."""
+    """返回画布的宽度、高度和边界框信息。"""
     info = page.evaluate("""
         () => {
             const canvas = document.querySelector('canvas');
@@ -95,54 +118,123 @@ def get_canvas_info(page):
     return info
 
 
+def parse_xy(text):
+    """解析 'X,Y' 字符串为整数元组。"""
+    try:
+        x, y = map(int, text.split(","))
+        return x, y
+    except ValueError:
+        print(f"错误：坐标格式必须是 X,Y（例如 400,240），收到：{text}", file=sys.stderr)
+        sys.exit(1)
+
+
+def get_canvas_screen_pos(page, canvas_x, canvas_y):
+    """将画布相对坐标转换为屏幕绝对坐标。"""
+    canvas = page.locator("canvas")
+    box = canvas.bounding_box()
+    return box["x"] + canvas_x, box["y"] + canvas_y
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Test LVGL Emscripten HTML output"
+        description="LVGL Web 视图测试工具 — 截图、模拟鼠标和键盘交互"
     )
     parser.add_argument(
         "target",
-        help="URL (http://...) or local file path (build/index.html)"
+        help="URL（http://...）或本地文件路径（build/index.html）"
     )
+
+    # 截图
     parser.add_argument(
         "--screenshot", "-s",
-        metavar="PATH",
-        help="Save screenshot to PATH (captures canvas area)"
-    )
-    parser.add_argument(
-        "--click", "-c",
-        metavar="X,Y",
-        help="Simulate a mouse click at (X,Y) inside the canvas"
-    )
-    parser.add_argument(
-        "--info", "-i",
-        action="store_true",
-        help="Print canvas dimensions and exit"
-    )
-    parser.add_argument(
-        "--wait", "-w",
-        type=int,
-        default=3000,
-        help="Wait N milliseconds for WASM init before screenshot/click (default: 3000)"
+        metavar="路径",
+        help="保存截图到指定路径（截取 Canvas 区域）"
     )
     parser.add_argument(
         "--full-page",
         action="store_true",
-        help="Screenshot the full page instead of just the canvas"
+        help="截取整页而非仅 Canvas"
+    )
+
+    # 等待
+    parser.add_argument(
+        "--wait", "-w",
+        type=int,
+        default=3000,
+        help="操作前等待 WASM 初始化的毫秒数（默认：3000）"
+    )
+
+    # 信息显示
+    parser.add_argument(
+        "--info", "-i",
+        action="store_true",
+        help="打印 Canvas 尺寸后退出"
+    )
+
+    # 鼠标 — 单击
+    parser.add_argument(
+        "--click", "-c",
+        metavar="X,Y",
+        help="在 Canvas 的 (X,Y) 位置单击"
+    )
+
+    # 鼠标 — 双击
+    parser.add_argument(
+        "--double-click",
+        metavar="X,Y",
+        help="在 Canvas 的 (X,Y) 位置双击"
+    )
+
+    # 鼠标 — 长按
+    parser.add_argument(
+        "--long-press",
+        metavar="X,Y",
+        help="在 Canvas 的 (X,Y) 位置长按"
     )
     parser.add_argument(
-        "--headless",
-        action="store_true",
-        default=True,
-        help="Run browser in headless mode (default: True)"
+        "--duration",
+        type=int,
+        default=800,
+        help="长按持续时间（毫秒，默认：800）"
     )
+
+    # 鼠标 — 拖拽
+    parser.add_argument(
+        "--drag",
+        metavar="X1,Y1",
+        help="拖拽起点（Canvas 相对坐标）"
+    )
+    parser.add_argument(
+        "--to",
+        metavar="X2,Y2",
+        help="拖拽终点（Canvas 相对坐标）"
+    )
+
+    # 鼠标 — 滚轮
+    parser.add_argument(
+        "--scroll",
+        type=int,
+        metavar="DELTA",
+        help="在 Canvas 中心滚动（正值向下/向右，负值向上/向左，模拟编码器）"
+    )
+
+    # 键盘
+    parser.add_argument(
+        "--key", "-k",
+        action="append",
+        metavar="KEY",
+        help="发送键盘按键（可多次使用）。常用键：Enter, Escape, Tab, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Space, Backspace"
+    )
+
+    # 浏览器模式
     parser.add_argument(
         "--no-headless",
         action="store_true",
-        help="Show the browser window (useful for debugging)"
+        help="显示浏览器窗口（用于调试）"
     )
 
     args = parser.parse_args()
-    headless = False if args.no_headless else args.headless
+    headless = not args.no_headless
 
     url, server = resolve_url(args.target)
 
@@ -150,31 +242,100 @@ def main():
         browser = p.chromium.launch(headless=headless)
         page = browser.new_page()
 
-        print(f"Navigating to {url} ...")
+        print(f"正在导航到 {url} ...")
         page.goto(url, wait_until="networkidle")
 
-        # Wait for WASM initialization
+        # 等待 WASM 初始化
         if args.wait > 0:
-            print(f"Waiting {args.wait}ms for WASM init...")
+            print(f"等待 {args.wait}ms 让 WASM 初始化...")
             time.sleep(args.wait / 1000.0)
 
-        # Get canvas info
+        # 获取 Canvas 信息
         info = get_canvas_info(page)
         if info is None:
-            print("Error: No <canvas> element found on page.", file=sys.stderr)
+            print("错误：页面中未找到 <canvas> 元素。", file=sys.stderr)
             browser.close()
             sys.exit(1)
 
         print(
-            f"Canvas size: {info['elementWidth']}x{info['elementHeight']} px "
-            f"(CSS: {info['cssWidth']}x{info['cssHeight']} px)"
+            f"Canvas 尺寸：{info['elementWidth']}x{info['elementHeight']} px "
+            f"（CSS：{info['cssWidth']}x{info['cssHeight']} px）"
         )
 
         if args.info:
             browser.close()
             return
 
-        # Screenshot
+        # === 鼠标操作 ===
+
+        # 单击
+        if args.click:
+            cx, cy = parse_xy(args.click)
+            sx, sy = get_canvas_screen_pos(page, cx, cy)
+            page.mouse.click(sx, sy)
+            print(f"单击：Canvas ({cx}, {cy}) => 屏幕 ({sx:.1f}, {sy:.1f})")
+            time.sleep(0.3)
+
+        # 双击
+        if args.double_click:
+            cx, cy = parse_xy(args.double_click)
+            sx, sy = get_canvas_screen_pos(page, cx, cy)
+            page.mouse.dblclick(sx, sy)
+            print(f"双击：Canvas ({cx}, {cy}) => 屏幕 ({sx:.1f}, {sy:.1f})")
+            time.sleep(0.3)
+
+        # 长按
+        if args.long_press:
+            cx, cy = parse_xy(args.long_press)
+            sx, sy = get_canvas_screen_pos(page, cx, cy)
+            page.mouse.move(sx, sy)
+            page.mouse.down()
+            print(f"长按：Canvas ({cx}, {cy})，持续 {args.duration}ms...")
+            time.sleep(args.duration / 1000.0)
+            page.mouse.up()
+            print("长按释放")
+            time.sleep(0.3)
+
+        # 拖拽
+        if args.drag:
+            if not args.to:
+                print("错误：--drag 必须与 --to 一起使用", file=sys.stderr)
+                browser.close()
+                sys.exit(1)
+            x1, y1 = parse_xy(args.drag)
+            x2, y2 = parse_xy(args.to)
+            sx1, sy1 = get_canvas_screen_pos(page, x1, y1)
+            sx2, sy2 = get_canvas_screen_pos(page, x2, y2)
+            page.mouse.move(sx1, sy1)
+            page.mouse.down()
+            print(f"拖拽：Canvas ({x1},{y1}) => ({x2},{y2})")
+            time.sleep(0.1)
+            page.mouse.move(sx2, sy2)
+            page.mouse.up()
+            time.sleep(0.3)
+
+        # 滚轮
+        if args.scroll is not None:
+            canvas = page.locator("canvas")
+            box = canvas.bounding_box()
+            cx, cy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+            delta = args.scroll
+            page.mouse.move(cx, cy)
+            # 水平滚轮模拟编码器（LVGL encoder 通常映射到水平滚轮）
+            page.mouse.wheel(delta_x=delta * 10, delta_y=0)
+            print(f"滚轮：Canvas 中心，delta={delta}")
+            time.sleep(0.3)
+
+        # === 键盘操作 ===
+
+        if args.key:
+            for key in args.key:
+                page.keyboard.press(key)
+                print(f"按键：{key}")
+                time.sleep(0.2)
+
+        # === 截图 ===
+
         if args.screenshot:
             os.makedirs(os.path.dirname(os.path.abspath(args.screenshot)) or ".", exist_ok=True)
             if args.full_page:
@@ -182,31 +343,7 @@ def main():
             else:
                 canvas = page.locator("canvas")
                 canvas.screenshot(path=args.screenshot)
-            print(f"Screenshot saved: {args.screenshot}")
-
-        # Click
-        if args.click:
-            try:
-                x, y = map(int, args.click.split(","))
-            except ValueError:
-                print("Error: --click must be in format X,Y (e.g. 400,240)", file=sys.stderr)
-                browser.close()
-                sys.exit(1)
-
-            canvas = page.locator("canvas")
-            box = canvas.bounding_box()
-            click_x = box["x"] + x
-            click_y = box["y"] + y
-            page.mouse.click(click_x, click_y)
-            print(f"Clicked at canvas ({x}, {y}) => screen ({click_x:.1f}, {click_y:.1f})")
-
-            # Wait a bit after click for UI to react
-            time.sleep(0.5)
-
-            # Re-screenshot if requested after click
-            if args.screenshot and not args.full_page:
-                canvas.screenshot(path=args.screenshot)
-                print(f"Post-click screenshot saved: {args.screenshot}")
+            print(f"截图已保存：{args.screenshot}")
 
         browser.close()
 
