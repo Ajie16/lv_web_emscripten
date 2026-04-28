@@ -71,7 +71,7 @@ Example: `http://localhost:3060/index.html?w=1024&h=600`
 Use `scripts/build-and-serve.sh` for a one-shot build + serve workflow.
 
 ```bash
-./.agents/skills/lvgl-emscripten-build/scripts/build-and-serve.sh [demo_name] [port]
+./skills/lvgl-emscripten-build/scripts/build-and-serve.sh [demo_name] [port]
 ```
 
 Defaults: demo=`lv_demo_widgets`, port=`3060`.

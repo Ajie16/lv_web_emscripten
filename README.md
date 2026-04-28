@@ -126,11 +126,12 @@ set_target_properties(index PROPERTIES LINK_FLAGS "... -s INITIAL_MEMORY=8388608
 lv_web_emscripten/
 ├── lvgl/                 # LVGL core (v8.4.0) - official submodule
 ├── lv_drivers/           # Display/input drivers - official submodule
-├── emsdk_adapter/      # Core application sources
+├── emsdk_adapter/        # Core application sources
 │   ├── main.c            # Entry point, SDL init, main loop
 │   ├── lv_conf.h         # LVGL configuration
 │   ├── lv_drv_conf.h     # lv_drivers configuration
 │   └── lvgl_shell.html   # Emscripten HTML shell
+├── skills/               # AI agent skills (build & serve helpers)
 ├── CMakeLists.txt        # Build configuration
 └── README.md             # This file
 ```

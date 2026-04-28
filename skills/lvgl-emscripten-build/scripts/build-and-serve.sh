@@ -4,7 +4,7 @@ set -e
 DEMO_NAME="${1:-lv_demo_widgets}"
 PORT="${2:-3060}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build"
 
 echo "=== LVGL Emscripten Build & Serve ==="
