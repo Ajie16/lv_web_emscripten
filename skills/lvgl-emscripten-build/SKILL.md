@@ -1,6 +1,6 @@
 ---
 name: lvgl-emscripten-build
-description: Build and serve the LVGL Emscripten web demo. Use when the user wants to compile LVGL to WebAssembly, build the project, run the demo in a browser, switch demos, or serve on a specific port. Triggers include "build", "编译", "serve", "run demo", "启动", "运行", "6000端口", or any request involving Emscripten compilation or local testing of the web demo.
+description: Build and serve the LVGL Emscripten web demo. Use when the user wants to compile LVGL to WebAssembly, build the project, run the demo in a browser, switch demos, or serve on a specific port. Triggers include "build", "编译", "serve", "run demo", "启动", "运行", "3060端口", or any request involving Emscripten compilation or local testing of the web demo.
 ---
 
 # LVGL Emscripten Build & Serve
@@ -49,12 +49,14 @@ Available `LVGL_CHOSEN_DEMO` values:
 - `lv_demo_benchmark`
 - `lv_demo_stress`
 - `lv_demo_music`
+- `lv_demo_keypad_encoder`
 
 Clean rebuild when switching:
 
 ```bash
+rm -rf build/*
 cd build
-rm -rf * && emcmake cmake .. -DLVGL_CHOSEN_DEMO=lv_demo_benchmark && emmake make -j$(nproc)
+emcmake cmake .. -DLVGL_CHOSEN_DEMO=lv_demo_benchmark && emmake make -j$(nproc)
 ```
 
 ## URL Parameters

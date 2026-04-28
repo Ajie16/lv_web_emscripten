@@ -21,7 +21,7 @@ if ! command -v emcc &> /dev/null; then
 fi
 
 # Ensure submodules are present
-if [ ! -f "${PROJECT_ROOT}/lvgl/src/lvgl.h" ] && [ ! -f "${PROJECT_ROOT}/lvgl/lvgl.h" ]; then
+if [ ! -f "${PROJECT_ROOT}/lvgl/lvgl.h" ]; then
     echo "Initializing git submodules..."
     cd "${PROJECT_ROOT}"
     git submodule update --init --recursive
