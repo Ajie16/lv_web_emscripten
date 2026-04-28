@@ -1,49 +1,49 @@
 ---
 name: lvgl-webview
-description: Test and inspect LVGL Emscripten HTML output using browser automation. Use when the user wants to screenshot the LVGL web demo, simulate mouse clicks on the canvas, measure canvas dimensions, or verify the rendered output of the compiled WASM demo. Triggers include "截图", "screenshot", "click", "点击", "test html", "canvas size", "像素", "测试", or any request involving visual verification of the browser-based LVGL demo.
+description: 使用浏览器自动化测试和检查 LVGL Emscripten HTML 输出。当用户需要对 LVGL Web 演示进行截图、在画布上模拟鼠标点击、测量画布尺寸或验证编译后的 WASM 演示渲染结果时使用。触发词包括"截图"、"screenshot"、"click"、"点击"、"test html"、"canvas size"、"像素"、"测试"、"webview"或任何涉及浏览器端 LVGL 演示视觉验证的请求。
 ---
 
-# LVGL Emscripten HTML Test
+# LVGL Web 视图测试
 
-## Prerequisites
+## 前置条件
 
 - Python 3.8+
-- Playwright (installed automatically via bundled venv)
+- Playwright（首次运行会自动通过捆绑的虚拟环境安装）
 
-The first run will create a virtual environment under `skills/.venv/` and install dependencies.
+首次运行会在 `skills/.venv/` 下创建虚拟环境并安装依赖。
 
-## Features
+## 功能
 
-| Feature | Command flag | Description |
-|---------|-------------|-------------|
-| **Screenshot** | `--screenshot <path>` | Capture the `<canvas>` element (or full page with `--full-page`) |
-| **Simulate click** | `--click X,Y` | Send a mouse click at `(X,Y)` relative to the canvas top-left |
-| **Canvas info** | `--info` | Print canvas element & CSS dimensions |
-| **WASM wait** | `--wait <ms>` | Delay before actions to let WASM initialize (default: 3000 ms) |
+| 功能 | 命令参数 | 说明 |
+|------|---------|------|
+| **截图** | `--screenshot <路径>` | 截取 `<canvas>` 元素（使用 `--full-page` 截取整页） |
+| **模拟点击** | `--click X,Y` | 在画布左上角为原点的 `(X,Y)` 位置发送鼠标点击 |
+| **画布信息** | `--info` | 打印画布元素尺寸和 CSS 尺寸 |
+| **WASM 等待** | `--wait <毫秒>` | 操作前延迟，等待 WASM 初始化完成（默认：3000 毫秒） |
 
-## Usage
+## 使用方法
 
-### Activate environment
+### 激活环境
 
 ```bash
 source skills/.venv/bin/activate
 ```
 
-### 1. Screenshot
+### 1. 截图
 
 ```bash
-# Screenshot a running server
+# 对已运行的服务截图
 python3 skills/lvgl-webview/scripts/test_html.py \
     http://localhost:3060/index.html \
     --screenshot screenshot.png
 
-# Screenshot a local file (auto-starts temp HTTP server)
+# 对本地文件截图（自动启动临时 HTTP 服务器）
 python3 skills/lvgl-webview/scripts/test_html.py \
     build/index.html \
     --screenshot screenshot.png
 ```
 
-### 2. Simulate click + screenshot
+### 2. 模拟点击 + 截图
 
 ```bash
 python3 skills/lvgl-webview/scripts/test_html.py \
@@ -53,9 +53,9 @@ python3 skills/lvgl-webview/scripts/test_html.py \
     --wait 5000
 ```
 
-> `--click X,Y` coordinates are relative to the **canvas top-left**.
+> `--click X,Y` 坐标以 **画布左上角** 为原点。
 
-### 3. Get canvas dimensions only
+### 3. 仅获取画布尺寸
 
 ```bash
 python3 skills/lvgl-webview/scripts/test_html.py \
@@ -63,12 +63,12 @@ python3 skills/lvgl-webview/scripts/test_html.py \
     --info
 ```
 
-Output example:
+输出示例：
 ```
 Canvas size: 800x480 px (CSS: 800x480 px)
 ```
 
-### 4. Full-page screenshot
+### 4. 整页截图
 
 ```bash
 python3 skills/lvgl-webview/scripts/test_html.py \
@@ -77,16 +77,16 @@ python3 skills/lvgl-webview/scripts/test_html.py \
     --full-page
 ```
 
-## Bundled Script
+## 捆绑脚本
 
 ```bash
-skills/lvgl-webview/scripts/test_html.py <url_or_file> [options]
+skills/lvgl-webview/scripts/test_html.py <url或文件> [选项]
 ```
 
-Common options:
-- `--screenshot PATH` — save screenshot
-- `--click X,Y` — simulate mouse click
-- `--info` — print canvas size and exit
-- `--wait 3000` — milliseconds to wait for WASM init
-- `--full-page` — screenshot entire page instead of canvas only
-- `--no-headless` — show browser window for debugging
+常用选项：
+- `--screenshot 路径` — 保存截图
+- `--click X,Y` — 模拟鼠标点击
+- `--info` — 打印画布尺寸后退出
+- `--wait 3000` — 等待 WASM 初始化的毫秒数
+- `--full-page` — 截取整页而非仅画布
+- `--no-headless` — 显示浏览器窗口（用于调试）
