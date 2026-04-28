@@ -1,5 +1,5 @@
 ---
-name: lvgl-emscripten-test
+name: lvgl-webview
 description: Test and inspect LVGL Emscripten HTML output using browser automation. Use when the user wants to screenshot the LVGL web demo, simulate mouse clicks on the canvas, measure canvas dimensions, or verify the rendered output of the compiled WASM demo. Triggers include "截图", "screenshot", "click", "点击", "test html", "canvas size", "像素", "测试", or any request involving visual verification of the browser-based LVGL demo.
 ---
 
@@ -33,12 +33,12 @@ source skills/.venv/bin/activate
 
 ```bash
 # Screenshot a running server
-python3 skills/lvgl-emscripten-test/scripts/test_html.py \
+python3 skills/lvgl-webview/scripts/test_html.py \
     http://localhost:3060/index.html \
     --screenshot screenshot.png
 
 # Screenshot a local file (auto-starts temp HTTP server)
-python3 skills/lvgl-emscripten-test/scripts/test_html.py \
+python3 skills/lvgl-webview/scripts/test_html.py \
     build/index.html \
     --screenshot screenshot.png
 ```
@@ -46,7 +46,7 @@ python3 skills/lvgl-emscripten-test/scripts/test_html.py \
 ### 2. Simulate click + screenshot
 
 ```bash
-python3 skills/lvgl-emscripten-test/scripts/test_html.py \
+python3 skills/lvgl-webview/scripts/test_html.py \
     http://localhost:3060/index.html \
     --click 400,240 \
     --screenshot after_click.png \
@@ -58,7 +58,7 @@ python3 skills/lvgl-emscripten-test/scripts/test_html.py \
 ### 3. Get canvas dimensions only
 
 ```bash
-python3 skills/lvgl-emscripten-test/scripts/test_html.py \
+python3 skills/lvgl-webview/scripts/test_html.py \
     http://localhost:3060/index.html \
     --info
 ```
@@ -71,7 +71,7 @@ Canvas size: 800x480 px (CSS: 800x480 px)
 ### 4. Full-page screenshot
 
 ```bash
-python3 skills/lvgl-emscripten-test/scripts/test_html.py \
+python3 skills/lvgl-webview/scripts/test_html.py \
     http://localhost:3060/index.html \
     --screenshot full.png \
     --full-page
@@ -80,7 +80,7 @@ python3 skills/lvgl-emscripten-test/scripts/test_html.py \
 ## Bundled Script
 
 ```bash
-skills/lvgl-emscripten-test/scripts/test_html.py <url_or_file> [options]
+skills/lvgl-webview/scripts/test_html.py <url_or_file> [options]
 ```
 
 Common options:
