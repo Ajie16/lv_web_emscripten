@@ -218,12 +218,19 @@ def main():
         help="在 Canvas 中心滚动（正值向下/向右，负值向上/向左，模拟编码器）"
     )
 
-    # 键盘
+    # 键盘 — 单键
     parser.add_argument(
         "--key", "-k",
         action="append",
         metavar="KEY",
-        help="发送键盘按键（可多次使用）。常用键：Enter, Escape, Tab, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Space, Backspace"
+        help="发送单个键盘按键（可多次使用）。常用键：Enter, Escape, Tab, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Space, Backspace"
+    )
+
+    # 键盘 — 输入字符串
+    parser.add_argument(
+        "--type", "-t",
+        metavar="TEXT",
+        help="输入任意文本（支持字母、数字、符号，模拟连续按键输入）"
     )
 
     # 浏览器模式
@@ -333,6 +340,11 @@ def main():
                 page.keyboard.press(key)
                 print(f"按键：{key}")
                 time.sleep(0.2)
+
+        if args.type:
+            page.keyboard.type(args.type)
+            print(f"输入文本：{args.type}")
+            time.sleep(0.2)
 
         # === 截图 ===
 

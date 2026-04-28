@@ -26,7 +26,8 @@ source skills/.venv/bin/activate
 | **长按** | `--long-press X,Y` | 在画布 `(X,Y)` 位置长按（默认 800ms） |
 | **拖拽** | `--drag X1,Y1 --to X2,Y2` | 从起点拖拽到终点 |
 | **滚轮** | `--scroll <delta>` | 在画布中心滚动（模拟编码器输入） |
-| **键盘** | `--key <按键>` | 发送键盘按键（可多次使用） |
+| **键盘按键** | `--key <按键>` | 发送单个键盘按键（可多次使用） |
+| **键盘输入** | `--type <文本>` | 输入任意文本（字母、数字、符号） |
 | **画布信息** | `--info` | 打印画布元素和 CSS 尺寸 |
 | **WASM 等待** | `--wait <毫秒>` | 操作前延迟等待 WASM 初始化（默认：3000ms） |
 
@@ -99,6 +100,10 @@ python3 skills/lvgl-webview/scripts/test_html.py \
 # 按 ESC 关闭弹窗
 python3 skills/lvgl-webview/scripts/test_html.py \
     build/index.html --key Escape
+
+# 在文本框中输入内容
+python3 skills/lvgl-webview/scripts/test_html.py \
+    build/index.html --type "Hello LVGL"
 ```
 
 **常用按键名称：**
@@ -147,7 +152,8 @@ skills/lvgl-webview/scripts/test_html.py <url或文件> [选项]
 - `--long-press X,Y` — 鼠标长按（配合 `--duration`）
 - `--drag X1,Y1 --to X2,Y2` — 鼠标拖拽
 - `--scroll delta` — 滚轮滚动
-- `--key 按键名` — 键盘按键（可多次使用）
+- `--key 按键名` — 单个键盘按键（可多次使用）
+- `--type 文本` — 输入任意文本
 - `--info` — 打印画布尺寸后退出
 - `--wait 3000` — 等待 WASM 初始化的毫秒数
 - `--full-page` — 截取整页
