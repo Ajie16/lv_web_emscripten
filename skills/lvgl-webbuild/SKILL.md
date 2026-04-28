@@ -1,5 +1,5 @@
 ---
-name: lvgl-emscripten-build
+name: lvgl-webbuild
 description: Build and serve the LVGL Emscripten web demo. Use when the user wants to compile LVGL to WebAssembly, build the project, run the demo in a browser, switch demos, or serve on a specific port. Triggers include "build", "编译", "serve", "run demo", "启动", "运行", "3060端口", or any request involving Emscripten compilation or local testing of the web demo.
 ---
 
@@ -73,7 +73,7 @@ Example: `http://localhost:3060/index.html?w=1024&h=600`
 Use `scripts/build-and-serve.sh` for a one-shot build + serve workflow.
 
 ```bash
-./skills/lvgl-emscripten-build/scripts/build-and-serve.sh [demo_name] [port]
+./skills/lvgl-webbuild/scripts/build-and-serve.sh [demo_name] [port]
 ```
 
 Defaults: demo=`lv_demo_widgets`, port=`3060`.
