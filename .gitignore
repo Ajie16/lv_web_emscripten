@@ -65,3 +65,9 @@ lvgl.wasm
 # CMake output
 build
 .vscode
+
+# Python virtual environments
+**/.venv/
+**/venv/
+__pycache__/
+*.pyc
